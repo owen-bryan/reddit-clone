@@ -85,6 +85,7 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ user }) => {
         });
       }
   
+      router.back();
       
     } catch (error: any) {
       console.log('handleCreatePost error', error.message);
@@ -93,7 +94,6 @@ const NewPostForm: React.FC<NewPostFormProps> = ({ user }) => {
     setLoading (false);
     // redirect the user back to the communityPage using the router
 
-    router.back();
   };
 
   const onSelectImage = (event: React.ChangeEvent<HTMLInputElement>) => {
