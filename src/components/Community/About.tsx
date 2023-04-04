@@ -16,7 +16,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import moment from "moment";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import router, { useRouter } from "next/router";
 import React, { useRef, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { FaReddit } from "react-icons/fa";
@@ -29,7 +29,6 @@ type AboutProps = {
 };
 
 const About: React.FC<AboutProps> = ({ communityData }) => {
-  const router = useRouter();
   const [user] = useAuthState(auth);
   const selectedFileRef = useRef<HTMLInputElement>(null);
   const { selectedFile, setSelectedFile, onSelectFile } = useSelectFile();
@@ -55,15 +54,17 @@ const About: React.FC<AboutProps> = ({ communityData }) => {
           imageURL: downloadURL,
         } as Community,
       }));
-      
+
     } catch (error) {
       console.log("onUpdateImage error", error);
     }
+
+    setUploadingImage (false);
   };
 
   return (
     <Box position="sticky" top="14px">
-      {console.log("communityData", communityData)}
+      {/* {console.log("communityData", communityData)} */}
       <Flex
         justify="space-between"
         align="center"
@@ -122,7 +123,7 @@ const About: React.FC<AboutProps> = ({ communityData }) => {
                     color="blue.500"
                     cursor="pointer"
                     _hover={{ textDecoration: "underline" }}
-                    onClick={() => {}}
+                    onClick={() => selectedFileRef.current?.click()}
                   >
                     Change Image
                   </Text>
