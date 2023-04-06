@@ -1,3 +1,4 @@
+import { authModalState } from "@/atoms/authModalAtom";
 import { communityState } from "@/atoms/communitiesAtom";
 import { Post, PostVote, postState } from "@/atoms/postsAtom";
 import { auth, firestore, storage } from "@/firebase/clientApp";
@@ -13,15 +14,19 @@ import {
 import { deleteObject, ref } from "firebase/storage";
 import { useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useRecoilState, useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 
 const usePosts = () => {
   const [user] = useAuthState(auth);
   const [postStateValue, setPostStateValue] = useRecoilState(postState);
   const currentCommunity = useRecoilValue(communityState).currentCommunity;
+  const setAuthModalSate = useSetRecoilState(authModalState);
 
   const onVote = async (post: Post, vote: number, communityId: string) => {
-    
+    if (!user?.uid) {
+      setAuthModalSate({ open: true, view: "login" });
+      return;
+    }
     // check if user is logged in if not open auth modal
     try {
       const { voteStatus } = post;
@@ -54,6 +59,7 @@ const usePosts = () => {
 
         // add/subtract 1 from post.voteStatus
         updatedPost.voteStatus = voteStatus + vote;
+        // console.log('voteStatus', voteStatus)
         updatedPostVotes = [...updatedPostVotes, newVote];
       } else {
         const postVoteRef = doc(
@@ -64,6 +70,7 @@ const usePosts = () => {
 
         // existing vote (up => neutral OR down => neutral)
         if (existingVote.voteValue === vote) {
+          voteChange *= -1;
           // add/subtract 1 from post.voteStatus
           updatedPost.voteStatus = voteStatus - vote;
           updatedPostVotes = updatedPostVotes.filter(
@@ -71,11 +78,10 @@ const usePosts = () => {
           );
           // delete the postVote document
           batch.delete(postVoteRef);
-
-          voteChange *= -1;
         }
         // Flipping their vote (up => down OR down => up)
         else {
+          voteChange = 2 * vote;
           // add/subtract 2 to post.voteStatus
           updatedPost.voteStatus = voteStatus + 2 * vote;
 
@@ -83,11 +89,12 @@ const usePosts = () => {
             (vote) => vote.id === existingVote.id
           );
 
-          updatedPostVotes[voteIndex] = {
-            ...existingVote,
-            voteValue: vote,
-          };
-
+          if (voteIndex !== -1) {
+            updatedPostVotes[voteIndex] = {
+              ...existingVote,
+              voteValue: vote,
+            };
+          }
           // updating the existing postValue doc
           batch.update(postVoteRef, {
             voteValue: vote,
@@ -95,23 +102,32 @@ const usePosts = () => {
         }
       }
 
-      // update post document
-      const postRef = doc(firestore, "posts", post.id);
-
-      batch.update(postRef, { voteStatus: vote + voteChange });
-
-      await batch.commit();
+      // let updatedState = { ...postStateValue, postVotes: updatedPostVotes };
 
       // update state with new values
       const postIndex = postStateValue.posts.findIndex(
         (item) => item.id === post.id
       );
       updatedPosts[postIndex] = updatedPost;
+
+      // updatedState = {
+      //   ...updatedState,
+      //   posts: updatedPosts,
+      // }
+
       setPostStateValue((prev) => ({
         ...prev,
         posts: updatedPosts,
         postVotes: updatedPostVotes,
       }));
+
+      // setPostStateValue (updatedState);
+      // update post document
+      const postRef = doc(firestore, "posts", post.id);
+
+      batch.update(postRef, { voteStatus: voteStatus + voteChange });
+
+      await batch.commit();
     } catch (error) {
       console.log("onVote error", error);
     }
@@ -161,19 +177,17 @@ const usePosts = () => {
     if (!user || !currentCommunity?.id) return;
 
     getCommunityPostVotes(currentCommunity?.id);
-
   }, [user, currentCommunity]);
 
-
-  useEffect (() => {
+  useEffect(() => {
     if (!user) {
       // clear user post votes
-      setPostStateValue (prev => ({
+      setPostStateValue((prev) => ({
         ...prev,
         postVotes: [],
-      }))
+      }));
     }
-  }, [user])
+  }, [user]);
   return {
     postStateValue,
     setPostStateValue,
