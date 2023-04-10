@@ -130,7 +130,7 @@ const PostItem: React.FC<PostItemProps> = ({
             {/* Home page check */}
             {homePage && (
               <>
-                {console.log('post.imageURL', post.imageURL)}
+                {/* {console.log('post.imageURL', post.imageURL)} */}
                 {post.communityImageURL ? (
                   <Image
                     src={post.communityImageURL}

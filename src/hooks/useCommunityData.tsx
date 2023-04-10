@@ -52,6 +52,7 @@ const useCommunityData = () => {
 
   const getMySnippets = async () => {
     setLoading(true);
+    // console.log('getMySnippets called')
     try {
       const snippetDocs = await getDocs(
         collection(firestore, `users/${user?.uid}/communitySnippets`)
@@ -62,6 +63,7 @@ const useCommunityData = () => {
       setCommunityStateValue((prev) => ({
         ...prev,
         mySnippets: snippets as CommunitySnippet[],
+        snippetsFetched: true,
       }));
 
       // console.log("snippets", snippets);
@@ -166,10 +168,12 @@ const useCommunityData = () => {
   };
 
   useEffect(() => {
+    // console.log ("set mySnippets")
     if (!user) {
       setCommunityStateValue((prev) => ({
         ...prev,
         mySnippets: [],
+        snippetsFetched: false,
       }));
 
       return;
